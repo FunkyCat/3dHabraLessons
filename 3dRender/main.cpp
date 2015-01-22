@@ -71,6 +71,7 @@ void triangle(Vec3i t0, Vec3i t1, Vec3i t2, TGAImage& image, const TGAColor& col
 		for (int x = a.x; x <= b.x; x++) {
 			float phi = (a.x == b.x ? 1. : float(x - a.x) / float(b.x - a.x));
 			Vec3i p = Vec3f(a) + Vec3f(b - a) * phi;
+			p.x = x, p.y = i + t0.y;
 			int idx = p.x + p.y * imgSize.x;
 			if (zBuffer[idx] < p.z) {
 				zBuffer[idx] = p.z;
