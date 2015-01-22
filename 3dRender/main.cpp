@@ -74,6 +74,7 @@ void triangle(Vec3i t0, Vec3i t1, Vec3i t2,
 		Vec2f uvB = (second ? uv1 : uv0) + (second ? uv2 - uv1 : uv1 - uv0) * beta;
 		if (a.x > b.x) {
 			std::swap(a, b);
+			std::swap(uvA, uvB);
 		}
 		for (int x = a.x; x <= b.x; x++) {
 			float phi = (a.x == b.x ? 1. : float(x - a.x) / float(b.x - a.x));
@@ -85,6 +86,7 @@ void triangle(Vec3i t0, Vec3i t1, Vec3i t2,
 				zBuffer[idx] = p.z;
 				TGAColor color = diffuse.get(int(uvP.x * diffuse.get_width()), int(uvP.y * diffuse.get_height()));
 				color = { (unsigned char)(color.r * intensity + 0.5), (unsigned char)(color.g * intensity + 0.5), (unsigned char)(color.b * intensity + 0.5), color.a };
+				//color = { (unsigned char)(255 * intensity), (unsigned char)(255 * intensity), (unsigned char)(255 * intensity), color.a };
 				image.set(p.x, p.y, color);
 			}
 		}
