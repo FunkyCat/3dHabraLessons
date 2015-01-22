@@ -46,22 +46,18 @@ void line(Vec2i t0, Vec2i t1, TGAImage& image, const TGAColor& color) {
 
 void triangle(Vec3i t0, Vec3i t1, Vec3i t2,
 	Vec2f uv0, Vec2f uv1, Vec2f uv2,
-	Vec3f n0, Vec3f n1, Vec3f n2,
-	TGAImage& image, TGAImage& diffuse, Vec3f lightDir, int* zBuffer) {
+	TGAImage& image, TGAImage& diffuse, TGAImage& normals, Vec3f lightDir, int* zBuffer) {
 	if (t0.y > t1.y) {
 		std::swap(t0, t1);
 		std::swap(uv0, uv1);
-		std::swap(n0, n1);
 	}
 	if (t0.y > t2.y) {
 		std::swap(t0, t2);
 		std::swap(uv0, uv2);
-		std::swap(n0, n2);
 	}
 	if (t1.y > t2.y) {
 		std::swap(t1, t2);
 		std::swap(uv1, uv2);
-		std::swap(n1, n2);
 	}
 
 	int height = t2.y - t0.y;
@@ -78,12 +74,9 @@ void triangle(Vec3i t0, Vec3i t1, Vec3i t2,
 		Vec3i b = (second ? t1 : t0) + (second ? t2 - t1 : t1 - t0) * beta;
 		Vec2f uvA = uv0 + (uv2 - uv0) * alpha;
 		Vec2f uvB = (second ? uv1 : uv0) + (second ? uv2 - uv1 : uv1 - uv0) * beta;
-		Vec3f nA = n0 + (n2 - n0) * alpha;
-		Vec3f nB = (second ? n1 : n0) + (second ? n2 - n1 : n1 - n0) * beta;
 		if (a.x > b.x) {
 			std::swap(a, b);
 			std::swap(uvA, uvB);
-			std::swap(nA, nB);
 		}
 		for (int x = a.x; x <= b.x; x++) {
 			float phi = (a.x == b.x ? 1.f : float(x - a.x) / float(b.x - a.x));
@@ -92,14 +85,15 @@ void triangle(Vec3i t0, Vec3i t1, Vec3i t2,
 			int idx = p.x + p.y * imgSize.x;
 			if (p.x >= 0 && p.x < imgSize.x && p.y >= 0 && p.y < imgSize.y && zBuffer[idx] < p.z) {
 				zBuffer[idx] = p.z;
-				
-				Vec3f nP = nA + (nB - nA) * phi;
+				Vec2f uvP = uvA + (uvB - uvA) * phi;
+				int u = int(uvP.x * diffuse.get_width());
+				int v = int(uvP.y * diffuse.get_height());
+				TGAColor nCol = normals.get(u, v);
+				Vec3f nP = { static_cast<float>(nCol.r - 128), static_cast<float>(nCol.g - 128), static_cast<float>(nCol.b - 128) };
 				nP.normalize();
 				nP = nP * -1.0f;
 				float intensity = std::max(0.0f, nP * lightDir);
-				Vec2f uvP = uvA + (uvB - uvA) * phi;
-				TGAColor color = diffuse.get(int(uvP.x * diffuse.get_width()),
-					int(uvP.y * diffuse.get_height()));
+				TGAColor color = diffuse.get(u, v);
 				color = { (unsigned char)(color.r * intensity + 0.5),
 					(unsigned char)(color.g * intensity + 0.5),
 					(unsigned char)(color.b * intensity + 0.5),
@@ -146,9 +140,12 @@ int main(int argc, char* argv[])
 
 	TGAImage image(imgSize.x, imgSize.y, TGAImage::RGB);
 	ObjModel model("obj/african_head.obj");
-	TGAImage diffuse;
-	diffuse.read_tga_file("obj/african_head_diffuse.tga");
-	diffuse.flip_vertically();
+	TGAImage diffuseTex;
+	diffuseTex.read_tga_file("obj/african_head_diffuse.tga");
+	diffuseTex.flip_vertically();
+	TGAImage normalsTex;
+	normalsTex.read_tga_file("obj/african_head_nm.tga");
+	normalsTex.flip_vertically();
 
 	Matrix projMat = Matrix::identity(4);
 	projMat[3][2] = -1.0f / camPos.z;
@@ -166,18 +163,15 @@ int main(int argc, char* argv[])
 		Vec3i screenCoord[3];
 		Vec2f uvCoord[3];
 		Vec3f worldCoord[3];
-		Vec3f normCoord[3];
 		for (int i = 0; i < 3; i++) {
 			worldCoord[i] = vx[static_cast<size_t>(face.vertexes.raw[i])];
 			uvCoord[i] = uvx[static_cast<size_t>(face.uvs.raw[i])];
-			normCoord[i] = nx[static_cast<size_t>(face.normals.raw[i])];
 			screenCoord[i] = matrix2vector(viewPortMat * projMat * vector2matrix(worldCoord[i]));
 		}
 
 		triangle(screenCoord[0], screenCoord[1], screenCoord[2],
 			uvCoord[0], uvCoord[1], uvCoord[2],
-			normCoord[0], normCoord[1], normCoord[2],
-			image, diffuse, lightDir, zBuffer);
+			image, diffuseTex, normalsTex, lightDir, zBuffer);
 	}
 	
 
