@@ -11,13 +11,13 @@ public:
 	ObjModel (const std::string& fileName);
 	ObjModel (const ObjModel& other);
 	std::vector< Vec3f >& getVertexes();
-	std::vector< Vec3i >& getTriangles();
-	Vec3f vertex(size_t idx);
-	Vec3i triangle(size_t idx);
+	std::vector< Vec2f >& getUVs();
+	std::vector< Face >& getFaces();
 
 private:
 	std::vector< Vec3f> _vertexes;
-	std::vector< Vec3i > _triangles;
+	std::vector< Vec2f > _uvs;
+	std::vector< Face > _faces;
 };
 
 #endif

@@ -72,4 +72,14 @@ public:
 typedef Vec2<float> Vec2f;
 typedef Vec2<int> Vec2i;
 
+
+class Face {
+public:
+	Vec3i vertexes;
+	Vec3i uvs;
+
+	Face() { }
+	Face(const Vec3i vertexes, const Vec3i uvs) : vertexes(vertexes), uvs(uvs) { }
+};
+
 #endif

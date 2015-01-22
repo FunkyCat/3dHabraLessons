@@ -28,17 +28,26 @@ ObjModel::ObjModel(const std::string& fileName)
 			if (!(ss >> x >> y >> z)) {
 				return;
 			}
-			_vertexes.push_back(Vec3f(x, y, z));
+			_vertexes.push_back({ x, y, z });
+		}
+		else if (type == "vt") {
+			float u, v;
+			if (!(ss >> u >> v)) {
+				return;
+			}
+			_uvs.push_back({ u, v });
 		}
 		else if (type == "f") {
 			Vec3i vs;
+			Vec3i uvs;
 			char ctrash;
 			int i = 0, trash;
-			while (ss >> vs.raw[i] >> ctrash >> trash >> ctrash >> trash) {
+			while (ss >> vs.raw[i] >> ctrash >> uvs.raw[i] >> ctrash >> trash) {
 				vs.raw[i]--;
+				uvs.raw[i]--;
 				i++;
 			}
-			_triangles.push_back(vs);
+			_faces.push_back({ vs, uvs });
 		}
 	}
 }
@@ -46,7 +55,8 @@ ObjModel::ObjModel(const std::string& fileName)
 ObjModel::ObjModel(const ObjModel& other)
 {
 	_vertexes = other._vertexes;
-	_triangles = other._triangles;
+	_uvs = other._uvs;
+	_faces = other._faces;
 }
 
 std::vector<Vec3f>& ObjModel::getVertexes()
@@ -54,17 +64,12 @@ std::vector<Vec3f>& ObjModel::getVertexes()
 	return _vertexes;
 }
 
-std::vector<Vec3i>& ObjModel::getTriangles()
+std::vector<Face>& ObjModel::getFaces()
 {
-	return _triangles;
+	return _faces;
 }
 
-Vec3f ObjModel::vertex(size_t idx)
+std::vector<Vec2f>& ObjModel::getUVs()
 {
-	return _vertexes[idx];
-}
-
-Vec3i ObjModel::triangle(size_t idx)
-{
-	return _triangles[idx];
+	return _uvs;
 }
