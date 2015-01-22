@@ -13,6 +13,8 @@ public:
 	Vec3 () : x(0), y(0), z(0) { }
 	Vec3 (T x, T y, T z) : x (x), y (y), z (z) { }
 	Vec3 (const Vec3<T>& other) : x (other.x), y (other.y), z (other.z) { }
+	template <typename V>
+	Vec3(const Vec3<V>& other);
 
 	float len() {
 		return sqrt(x * x + y * y + z * z);
@@ -42,7 +44,6 @@ public:
 };
 
 typedef Vec3<float> Vec3f;
-typedef Vec3<double> Vec3d;
 typedef Vec3<int> Vec3i;
 
 template <typename T>
@@ -69,7 +70,6 @@ public:
 };
 
 typedef Vec2<float> Vec2f;
-typedef Vec2<double> Vec2d;
 typedef Vec2<int> Vec2i;
 
 #endif

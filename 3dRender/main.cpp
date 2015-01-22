@@ -4,9 +4,7 @@
 #include "tgaimage.h"
 #include "ObjModel.h"
 
-const TGAColor red(255, 0, 0, 0);
-const TGAColor white(255, 255, 255, 0);
-const TGAColor green(0, 255, 0, 0);
+const Vec2i imgSize = { 600, 800 };
 
 void line(int x0, int y0, int x1, int y1, TGAImage& image, const TGAColor& color)
 {
@@ -44,7 +42,7 @@ void line(Vec2i t0, Vec2i t1, TGAImage& image, const TGAColor& color) {
 	line(t0.x, t0.y, t1.x, t1.y, image, color);
 }
 
-void triangle(Vec2i t0, Vec2i t1, Vec2i t2, TGAImage& image, const TGAColor& color) {
+void triangle(Vec3i t0, Vec3i t1, Vec3i t2, TGAImage& image, const TGAColor& color, int* zBuffer) {
 	if (t0.y > t1.y) {
 		std::swap(t0, t1);
 	}
@@ -65,14 +63,23 @@ void triangle(Vec2i t0, Vec2i t1, Vec2i t2, TGAImage& image, const TGAColor& col
 		}
 		float alpha = float(i) / height;
 		float beta = float(second ? t0.y - t1.y + i : i) / segHeight;
-		Vec2i a = t0 + (t2 - t0) * alpha;
-		Vec2i b = (second ? t1 : t0) + (second ? t2 - t1 : t1 - t0) * beta;
-		a.y = b.y = i + t0.y;
-		line(a, b, image, color);
+		Vec3i a = t0 + (t2 - t0) * alpha;
+		Vec3i b = (second ? t1 : t0) + (second ? t2 - t1 : t1 - t0) * beta;
+		if (a.x > b.x) {
+			std::swap(a, b);
+		}
+		for (int x = a.x; x <= b.x; x++) {
+			float phi = (a.x == b.x ? 1. : float(x - a.x) / float(b.x - a.x));
+			Vec3i p = Vec3f(a) + Vec3f(b - a) * phi;
+			int idx = p.x + p.y * imgSize.x;
+			if (zBuffer[idx] < p.z) {
+				zBuffer[idx] = p.z;
+				image.set(p.x, p.y, color);
+			}
+		}
 	}
 }
 
-const Vec2i imgSize = { 600, 800 };
 
 
 int main(int argc, char* argv[])
@@ -108,14 +115,15 @@ int main(int argc, char* argv[])
 	const vector<Vec3i> tx = model.getTriangles();
 
 	Vec3f lightDir = {0, 0, -1};
-
+	int* zBuffer = new int[imgSize.x * imgSize.y];
 	for (auto iter = tx.begin(); iter != tx.end(); iter++) {
-		Vec2i screenCoord[3];
+		Vec3i screenCoord[3];
 		Vec3f worldCoord[3];
 		for (int i = 0; i < 3; i++) {
 			worldCoord[i] = vx[static_cast<size_t>(iter->raw[i])];
 			screenCoord[i].x = imgMove.x / 2 + int((worldCoord[i].x - minVx.x) * scale);
 			screenCoord[i].y = imgMove.y / 2 + int((worldCoord[i].y - minVx.y) * scale);
+			screenCoord[i].z = int((worldCoord[i].z - minVx.z) * scale);
 		}
 
 		Vec3f norm = (worldCoord[2] - worldCoord[0]) ^ (worldCoord[1] - worldCoord[0]);
@@ -124,7 +132,7 @@ int main(int argc, char* argv[])
 		unsigned char color = intensity * 255;
 		if (intensity >= 0) {
 			triangle(screenCoord[0], screenCoord[1], screenCoord[2], image,
-				TGAColor(color, color, color, 0));
+				TGAColor(color, color, color, 0), zBuffer);
 		}
 	}
 	
