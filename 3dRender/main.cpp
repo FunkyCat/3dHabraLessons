@@ -84,8 +84,12 @@ void triangle(Vec3i t0, Vec3i t1, Vec3i t2,
 			int idx = p.x + p.y * imgSize.x;
 			if (zBuffer[idx] < p.z) {
 				zBuffer[idx] = p.z;
-				TGAColor color = diffuse.get(int(uvP.x * diffuse.get_width()), int(uvP.y * diffuse.get_height()));
-				color = { (unsigned char)(color.r * intensity + 0.5), (unsigned char)(color.g * intensity + 0.5), (unsigned char)(color.b * intensity + 0.5), color.a };
+				TGAColor color = diffuse.get(int(uvP.x * diffuse.get_width()),
+					int(uvP.y * diffuse.get_height()));
+				color = { (unsigned char)(color.r * intensity + 0.5),
+					(unsigned char)(color.g * intensity + 0.5),
+					(unsigned char)(color.b * intensity + 0.5),
+					color.a };
 				//color = { (unsigned char)(255 * intensity), (unsigned char)(255 * intensity), (unsigned char)(255 * intensity), color.a };
 				image.set(p.x, p.y, color);
 			}
@@ -132,13 +136,13 @@ int main(int argc, char* argv[])
 
 	Vec3f lightDir = {0, 0, -1};
 	int* zBuffer = new int[imgSize.x * imgSize.y];
-	for (auto iter = fx.begin(); iter != fx.end(); iter++) {
+	for (const Face& face : fx) {
 		Vec3i screenCoord[3];
 		Vec2f uvCoord[3];
 		Vec3f worldCoord[3];
 		for (int i = 0; i < 3; i++) {
-			worldCoord[i] = vx[static_cast<size_t>(iter->vertexes.raw[i])];
-			uvCoord[i] = uvx[static_cast<size_t>(iter->uvs.raw[i])];
+			worldCoord[i] = vx[static_cast<size_t>(face.vertexes.raw[i])];
+			uvCoord[i] = uvx[static_cast<size_t>(face.uvs.raw[i])];
 			screenCoord[i].x = imgMove.x / 2 + int((worldCoord[i].x - minVx.x) * scale);
 			screenCoord[i].y = imgMove.y / 2 + int((worldCoord[i].y - minVx.y) * scale);
 			screenCoord[i].z = int((worldCoord[i].z - minVx.z) * scale);
