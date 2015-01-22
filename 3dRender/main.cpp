@@ -81,11 +81,8 @@ int main(int argc, char* argv[])
 
 	TGAImage image(imgSize.x, imgSize.y, TGAImage::RGB);
 
-	//triangle({ 50, 50 }, { 20, 250 }, { 100, 200 }, image, red);
-
 	ObjModel model("obj/african_head.obj");
 
-	
 	Vec3f minVx, maxVx;
 	for (int i = 0; i < 3; i++) {
 		minVx.raw[i] = numeric_limits<float>::max();
@@ -94,8 +91,8 @@ int main(int argc, char* argv[])
 	const vector<Vec3f> vx = model.getVertexes();
 	for (auto iter = vx.begin(); iter != vx.end(); iter++) {
 		for (int i = 0; i < 3; i++) {
-			minVx.raw[i] = min (minVx.raw[i], iter->raw[i]);
-			maxVx.raw[i] = max (maxVx.raw[i], iter->raw[i]);
+			minVx.raw[i] = min(minVx.raw[i], iter->raw[i]);
+			maxVx.raw[i] = max(maxVx.raw[i], iter->raw[i]);
 		}
 	}
 	Vec3f dVx;
@@ -109,15 +106,26 @@ int main(int argc, char* argv[])
 	Vec2i imgMove = { imgSize.x - int(dVx.x * scale), imgSize.y - int(dVx.y * scale) };
 
 	const vector<Vec3i> tx = model.getTriangles();
+
+	Vec3f lightDir = {0, 0, -1};
+
 	for (auto iter = tx.begin(); iter != tx.end(); iter++) {
 		Vec2i screenCoord[3];
+		Vec3f worldCoord[3];
 		for (int i = 0; i < 3; i++) {
-			size_t idx = static_cast<size_t>(iter->raw[i]);
-			screenCoord[i].x = imgMove.x / 2 + int((vx[idx].x - minVx.x) * scale);
-			screenCoord[i].y = imgMove.y / 2 + int((vx[idx].y - minVx.y) * scale);
+			worldCoord[i] = vx[static_cast<size_t>(iter->raw[i])];
+			screenCoord[i].x = imgMove.x / 2 + int((worldCoord[i].x - minVx.x) * scale);
+			screenCoord[i].y = imgMove.y / 2 + int((worldCoord[i].y - minVx.y) * scale);
 		}
-		triangle(screenCoord[0], screenCoord[1], screenCoord[2], image,
-			TGAColor(char(rand() % 256), char(rand() % 256), char(rand() % 256), 0));
+
+		Vec3f norm = (worldCoord[2] - worldCoord[0]) ^ (worldCoord[1] - worldCoord[0]);
+		norm.normalize();
+		float intensity = norm * lightDir;
+		unsigned char color = intensity * 255;
+		if (intensity >= 0) {
+			triangle(screenCoord[0], screenCoord[1], screenCoord[2], image,
+				TGAColor(color, color, color, 0));
+		}
 	}
 	
 

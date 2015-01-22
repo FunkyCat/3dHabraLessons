@@ -14,7 +14,31 @@ public:
 	Vec3 (T x, T y, T z) : x (x), y (y), z (z) { }
 	Vec3 (const Vec3<T>& other) : x (other.x), y (other.y), z (other.z) { }
 
+	float len() {
+		return sqrt(x * x + y * y + z * z);
+	}
+
+	Vec3<T>& normalize(const T l = 1) {
+		(*this) = (*this) * (l / len());
+		return *this;
+	}
+
 	friend std::ostream& operator << (std::ostream& out, Vec3<T>& vec) { out << '(' << x << ", " << y << ", " << z << ')'; return out; }
+	Vec3 operator + (const Vec3<T>& other) {
+		return { x + other.x, y + other.y, z + other.z };
+	}
+	Vec3 operator - (const Vec3<T>& other) {
+		return { x - other.x, y - other.y, z - other.z };
+	}
+	Vec3 operator * (const float a) {
+		return { x * a, y * a, z * a };
+	}
+	T operator * (const Vec3<T>& other) {
+		return x * other.x + y * other.y + z * other.z;
+	}
+	Vec3 operator ^ (const Vec3<T>& other) {
+		return { y * other.z - z * other.y, z * other.x - x * other.z, x * other.y - y * other.x };
+	}
 };
 
 typedef Vec3<float> Vec3f;
@@ -33,9 +57,15 @@ public:
 	Vec2(const Vec2<T>& other) : x(other.x), y(other.y) { }
 
 	friend std::ostream& operator << (std::ostream& out, Vec2<T>& vec) { out << '(' << x << ", " << y << ')'; return out; }
-	Vec2 operator + (const Vec2<T>& other) { return { x + other.x, y + other.y }; }
-	Vec2 operator - (const Vec2<T>& other) { return { x - other.x, y - other.y }; }
-	Vec2 operator* (float a) { return { x * a, y * a }; }
+	Vec2 operator + (const Vec2<T>& other) {
+		return { x + other.x, y + other.y };
+	}
+	Vec2 operator - (const Vec2<T>& other) {
+		return { x - other.x, y - other.y };
+	}
+	Vec2 operator* (float a) {
+		return { x * a, y * a };
+	}
 };
 
 typedef Vec2<float> Vec2f;
