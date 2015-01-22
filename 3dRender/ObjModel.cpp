@@ -1,6 +1,7 @@
 #include "ObjModel.h"
 #include <fstream>
 #include <sstream>
+#include <iostream>
 
 ObjModel::ObjModel()
 {
@@ -13,11 +14,14 @@ ObjModel::ObjModel(const std::string& fileName)
 		return;
 	}
 	std::string line;
-	while (getline(inFile, line)) {
+	while (!inFile.eof()) {
+		if (!getline(inFile, line)) {
+			continue;
+		}
 		std::istringstream ss(line);
 		std::string type;
-		if (ss >> type) {
-			return;
+		if (!(ss >> type)) {
+			continue;
 		}
 		if (type == "v") {
 			float x, y, z;
@@ -27,12 +31,14 @@ ObjModel::ObjModel(const std::string& fileName)
 			_vertexes.push_back(Vec3f(x, y, z));
 		}
 		else if (type == "f") {
-			int va, vb, vc, trash;
-			if (!(ss >> va >> trash >> trash >> vb >> trash >> trash >> vc >> trash >> trash)) {
-				return;
+			Vec3i vs;
+			char ctrash;
+			int i = 0, trash;
+			while (ss >> vs.raw[i] >> ctrash >> trash >> ctrash >> trash) {
+				vs.raw[i]--;
+				i++;
 			}
-			va--, vb--, vc--;
-			_triangles.push_back(Vec3i(va, vb, vc));
+			_triangles.push_back(vs);
 		}
 	}
 }
@@ -51,4 +57,14 @@ std::vector<Vec3f>& ObjModel::getVertexes()
 std::vector<Vec3i>& ObjModel::getTriangles()
 {
 	return _triangles;
+}
+
+Vec3f ObjModel::vertex(size_t idx)
+{
+	return _vertexes[idx];
+}
+
+Vec3i ObjModel::triangle(size_t idx)
+{
+	return _triangles[idx];
 }
