@@ -26,28 +26,37 @@ ObjModel::ObjModel(const std::string& fileName)
 		if (type == "v") {
 			float x, y, z;
 			if (!(ss >> x >> y >> z)) {
-				return;
+				continue;
 			}
 			_vertexes.push_back({ x, y, z });
 		}
 		else if (type == "vt") {
 			float u, v;
 			if (!(ss >> u >> v)) {
-				return;
+				continue;
 			}
 			_uvs.push_back({ u, v });
+		}
+		else if (type == "vn") {
+			float x, y, z;
+			if (!(ss >> x >> y >> z)) {
+				continue;
+			}
+			_normals.push_back({ x, y, z });
 		}
 		else if (type == "f") {
 			Vec3i vs;
 			Vec3i uvs;
+			Vec3i ns;
 			char ctrash;
-			int i = 0, trash;
-			while (ss >> vs.raw[i] >> ctrash >> uvs.raw[i] >> ctrash >> trash) {
+			int i = 0;
+			while (ss >> vs.raw[i] >> ctrash >> uvs.raw[i] >> ctrash >> ns.raw[i]) {
 				vs.raw[i]--;
 				uvs.raw[i]--;
+				ns.raw[i]--;
 				i++;
 			}
-			_faces.push_back({ vs, uvs });
+			_faces.push_back({ vs, uvs, ns });
 		}
 	}
 }
@@ -64,12 +73,17 @@ std::vector<Vec3f>& ObjModel::getVertexes()
 	return _vertexes;
 }
 
-std::vector<Face>& ObjModel::getFaces()
-{
-	return _faces;
-}
-
 std::vector<Vec2f>& ObjModel::getUVs()
 {
 	return _uvs;
+}
+
+std::vector<Vec3f>& ObjModel::getNormals()
+{
+	return _normals;
+}
+
+std::vector<Face>& ObjModel::getFaces()
+{
+	return _faces;
 }

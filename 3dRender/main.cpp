@@ -44,18 +44,22 @@ void line(Vec2i t0, Vec2i t1, TGAImage& image, const TGAColor& color) {
 
 void triangle(Vec3i t0, Vec3i t1, Vec3i t2,
 	Vec2f uv0, Vec2f uv1, Vec2f uv2,
-	TGAImage& image, TGAImage& diffuse, float intensity, int* zBuffer) {
+	Vec3f n0, Vec3f n1, Vec3f n2,
+	TGAImage& image, TGAImage& diffuse, Vec3f lightDir, int* zBuffer) {
 	if (t0.y > t1.y) {
 		std::swap(t0, t1);
 		std::swap(uv0, uv1);
+		std::swap(n0, n1);
 	}
 	if (t0.y > t2.y) {
 		std::swap(t0, t2);
 		std::swap(uv0, uv2);
+		std::swap(n0, n2);
 	}
 	if (t1.y > t2.y) {
 		std::swap(t1, t2);
 		std::swap(uv1, uv2);
+		std::swap(n1, n2);
 	}
 
 	int height = t2.y - t0.y;
@@ -72,18 +76,26 @@ void triangle(Vec3i t0, Vec3i t1, Vec3i t2,
 		Vec3i b = (second ? t1 : t0) + (second ? t2 - t1 : t1 - t0) * beta;
 		Vec2f uvA = uv0 + (uv2 - uv0) * alpha;
 		Vec2f uvB = (second ? uv1 : uv0) + (second ? uv2 - uv1 : uv1 - uv0) * beta;
+		Vec3f nA = n0 + (n2 - n0) * alpha;
+		Vec3f nB = (second ? n1 : n0) + (second ? n2 - n1 : n1 - n0) * beta;
 		if (a.x > b.x) {
 			std::swap(a, b);
 			std::swap(uvA, uvB);
+			std::swap(nA, nB);
 		}
 		for (int x = a.x; x <= b.x; x++) {
-			float phi = (a.x == b.x ? 1. : float(x - a.x) / float(b.x - a.x));
+			float phi = (a.x == b.x ? 1.f : float(x - a.x) / float(b.x - a.x));
 			Vec3i p = Vec3f(a) + Vec3f(b - a) * phi;
-			Vec2f uvP = Vec2f(uvA) + Vec2f(uvB - uvA) * phi;
 			p.x = x, p.y = i + t0.y;
 			int idx = p.x + p.y * imgSize.x;
 			if (zBuffer[idx] < p.z) {
 				zBuffer[idx] = p.z;
+				
+				Vec3f nP = nA + (nB - nA) * phi;
+				nP.normalize();
+				nP = nP * -1.0f;
+				float intensity = std::max(0.0f, nP * lightDir);
+				Vec2f uvP = uvA + (uvB - uvA) * phi;
 				TGAColor color = diffuse.get(int(uvP.x * diffuse.get_width()),
 					int(uvP.y * diffuse.get_height()));
 				color = { (unsigned char)(color.r * intensity + 0.5),
@@ -133,30 +145,29 @@ int main(int argc, char* argv[])
 
 	const vector<Face> fx = model.getFaces();
 	const vector<Vec2f> uvx = model.getUVs();
+	const vector<Vec3f> nx = model.getNormals();
 
 	Vec3f lightDir = {0, 0, -1};
 	int* zBuffer = new int[imgSize.x * imgSize.y];
+	memset(zBuffer, 0, sizeof(int) * imgSize.x * imgSize.y);
 	for (const Face& face : fx) {
 		Vec3i screenCoord[3];
 		Vec2f uvCoord[3];
 		Vec3f worldCoord[3];
+		Vec3f normCoord[3];
 		for (int i = 0; i < 3; i++) {
 			worldCoord[i] = vx[static_cast<size_t>(face.vertexes.raw[i])];
 			uvCoord[i] = uvx[static_cast<size_t>(face.uvs.raw[i])];
+			normCoord[i] = nx[static_cast<size_t>(face.normals.raw[i])];
 			screenCoord[i].x = imgMove.x / 2 + int((worldCoord[i].x - minVx.x) * scale);
 			screenCoord[i].y = imgMove.y / 2 + int((worldCoord[i].y - minVx.y) * scale);
 			screenCoord[i].z = int((worldCoord[i].z - minVx.z) * scale);
 		}
 
-		Vec3f norm = (worldCoord[2] - worldCoord[0]) ^ (worldCoord[1] - worldCoord[0]);
-		norm.normalize();
-		float intensity = norm * lightDir;
-		unsigned char color = intensity * 255;
-		if (intensity >= 0) {
-			triangle(screenCoord[0], screenCoord[1], screenCoord[2],
-				uvCoord[0], uvCoord[1], uvCoord[2],
-				image, diffuse, intensity, zBuffer);
-		}
+		triangle(screenCoord[0], screenCoord[1], screenCoord[2],
+			uvCoord[0], uvCoord[1], uvCoord[2],
+			normCoord[0], normCoord[1], normCoord[2],
+			image, diffuse, lightDir, zBuffer);
 	}
 	
 

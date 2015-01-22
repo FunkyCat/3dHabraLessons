@@ -33,7 +33,9 @@ public:
 		return { x - other.x, y - other.y, z - other.z };
 	}
 	Vec3 operator * (const float a) {
-		return { x * a, y * a, z * a };
+		return { static_cast<T>(x * a),
+			static_cast<T>(y * a),
+			static_cast<T>(z * a) };
 	}
 	T operator * (const Vec3<T>& other) {
 		return x * other.x + y * other.y + z * other.z;
@@ -71,15 +73,5 @@ public:
 
 typedef Vec2<float> Vec2f;
 typedef Vec2<int> Vec2i;
-
-
-class Face {
-public:
-	Vec3i vertexes;
-	Vec3i uvs;
-
-	Face() { }
-	Face(const Vec3i vertexes, const Vec3i uvs) : vertexes(vertexes), uvs(uvs) { }
-};
 
 #endif
