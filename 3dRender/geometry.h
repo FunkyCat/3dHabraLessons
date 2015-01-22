@@ -2,6 +2,7 @@
 #define __GEOMETRY_H__
 
 #include <ostream>
+#include <vector>
 
 template <typename T>
 class Vec3 {
@@ -73,5 +74,22 @@ public:
 
 typedef Vec2<float> Vec2f;
 typedef Vec2<int> Vec2i;
+
+class Matrix {
+	std::vector<std::vector<float> > _m;
+	int _rows, _cols;
+public:
+	Matrix(int rows = 4, int cols = 4);
+	inline int rowCount();
+	inline int colCount();
+
+	static Matrix identity(int dimensions);
+	std::vector<float>& operator[](const int i);
+	Matrix operator*(const Matrix& other);
+	Matrix transpose();
+	Matrix inverse();
+
+	friend std::ostream& operator<<(std::ostream& s, Matrix& m);
+};
 
 #endif

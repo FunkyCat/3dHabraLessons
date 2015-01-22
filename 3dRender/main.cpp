@@ -4,7 +4,9 @@
 #include "tgaimage.h"
 #include "ObjModel.h"
 
-const Vec2i imgSize = { 600, 800 };
+const Vec2i imgSize = { 800, 800 };
+Vec3f lightDir = { 0, 0, -1 };
+Vec3f camPos = { 0, 0, 3 };
 
 void line(int x0, int y0, int x1, int y1, TGAImage& image, const TGAColor& color)
 {
@@ -88,7 +90,7 @@ void triangle(Vec3i t0, Vec3i t1, Vec3i t2,
 			Vec3i p = Vec3f(a) + Vec3f(b - a) * phi;
 			p.x = x, p.y = i + t0.y;
 			int idx = p.x + p.y * imgSize.x;
-			if (zBuffer[idx] < p.z) {
+			if (p.x >= 0 && p.x < imgSize.x && p.y >= 0 && p.y < imgSize.y && zBuffer[idx] < p.z) {
 				zBuffer[idx] = p.z;
 				
 				Vec3f nP = nA + (nB - nA) * phi;
@@ -110,6 +112,33 @@ void triangle(Vec3i t0, Vec3i t1, Vec3i t2,
 }
 
 
+Matrix makeViewPort(float x, float y, float w, float h, float depth) {
+	Matrix m = Matrix::identity(4);
+	m[0][3] = x + w / 2.0f;
+	m[1][3] = y + h / 2.0f;
+	m[2][3] = depth / 2.0f;
+	
+	m[0][0] = w / 2.0f;
+	m[1][1] = h / 2.0f;
+	m[2][2] = depth / 2.0f;
+
+	return m;
+}
+
+
+Vec3f matrix2vector(Matrix& m) {
+	return { m[0][0] / m[3][0], m[1][0] / m[3][0], m[2][0] / m[3][0] };
+}
+
+Matrix vector2matrix(const Vec3f v) {
+	Matrix m(4, 1);
+	m[0][0] = v.x;
+	m[1][0] = v.y;
+	m[2][0] = v.z;
+	m[3][0] = 1.0f;
+	return m;
+}
+
 
 int main(int argc, char* argv[])
 {
@@ -121,33 +150,16 @@ int main(int argc, char* argv[])
 	diffuse.read_tga_file("obj/african_head_diffuse.tga");
 	diffuse.flip_vertically();
 
-	Vec3f minVx, maxVx;
-	for (int i = 0; i < 3; i++) {
-		minVx.raw[i] = numeric_limits<float>::max();
-		maxVx.raw[i] = numeric_limits<float>::min();
-	}
+	Matrix projMat = Matrix::identity(4);
+	projMat[3][2] = -1.0f / camPos.z;
+	Matrix viewPortMat = makeViewPort(imgSize.x / 8.0, imgSize.y / 8.0,
+		imgSize.x / 4 * 3, imgSize.y / 4 * 3, 255);
+
 	const vector<Vec3f> vx = model.getVertexes();
-	for (auto iter = vx.begin(); iter != vx.end(); iter++) {
-		for (int i = 0; i < 3; i++) {
-			minVx.raw[i] = min(minVx.raw[i], iter->raw[i]);
-			maxVx.raw[i] = max(maxVx.raw[i], iter->raw[i]);
-		}
-	}
-	Vec3f dVx;
-	for (int i = 0; i < 3; i++) {
-		dVx.raw[i] = maxVx.raw[i] - minVx.raw[i];
-	}
-
-	float imgRatio = float(imgSize.x) / float(imgSize.y);
-	float modelRatio = dVx.x / dVx.y;
-	float scale = (imgRatio > modelRatio ? imgSize.y / dVx.y : imgSize.x / dVx.x);
-	Vec2i imgMove = { imgSize.x - int(dVx.x * scale), imgSize.y - int(dVx.y * scale) };
-
 	const vector<Face> fx = model.getFaces();
 	const vector<Vec2f> uvx = model.getUVs();
 	const vector<Vec3f> nx = model.getNormals();
 
-	Vec3f lightDir = {0, 0, -1};
 	int* zBuffer = new int[imgSize.x * imgSize.y];
 	memset(zBuffer, 0, sizeof(int) * imgSize.x * imgSize.y);
 	for (const Face& face : fx) {
@@ -159,9 +171,7 @@ int main(int argc, char* argv[])
 			worldCoord[i] = vx[static_cast<size_t>(face.vertexes.raw[i])];
 			uvCoord[i] = uvx[static_cast<size_t>(face.uvs.raw[i])];
 			normCoord[i] = nx[static_cast<size_t>(face.normals.raw[i])];
-			screenCoord[i].x = imgMove.x / 2 + int((worldCoord[i].x - minVx.x) * scale);
-			screenCoord[i].y = imgMove.y / 2 + int((worldCoord[i].y - minVx.y) * scale);
-			screenCoord[i].z = int((worldCoord[i].z - minVx.z) * scale);
+			screenCoord[i] = matrix2vector(viewPortMat * projMat * vector2matrix(worldCoord[i]));
 		}
 
 		triangle(screenCoord[0], screenCoord[1], screenCoord[2],
@@ -170,7 +180,6 @@ int main(int argc, char* argv[])
 			image, diffuse, lightDir, zBuffer);
 	}
 	
-
 
 	image.flip_vertically();
 	image.write_tga_file("test.tga");
