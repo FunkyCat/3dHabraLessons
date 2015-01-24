@@ -21,9 +21,10 @@ Matrix::Matrix(size_t rows, size_t cols)
 Matrix::Matrix(const Vec3f vector) : _m(std::vector< std::vector< float > >(4, std::vector<float>(1))),
 	_cols(1), _rows(4)
 {
-	for (int i = 0; i < 3; i++) {
-		_m[i][0] = vector[i];
-	}
+	_m[0][0] = vector.x;
+	_m[1][0] = vector.y;
+	_m[2][0] = vector.z;
+	_m[3][0] = 1.0f;
 }
 
 int Matrix::rowCount() {

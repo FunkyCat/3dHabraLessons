@@ -142,6 +142,10 @@ Matrix vector2matrix(const Vec3f v) {
 	return m;
 }
 
+Vec3f matrix2vector(const Matrix& m) {
+	return{ m[0][0] / m[3][0], m[1][0] / m[3][0], m[2][0] / m[3][0] };
+}
+
 const Vec2i imgSize = { 600, 600 };
 Vec3f lightDir = Vec3f(1, -1, 1).normalize();
 Vec3f eye = { 1, 1, 3 };
@@ -186,7 +190,7 @@ int main(int argc, char* argv[])
 		for (int i = 0; i < 3; i++) {
 			worldCoord[i] = vx[static_cast<size_t>(face.vertexes.raw[i])];
 			uvCoord[i] = uvx[static_cast<size_t>(face.uvs.raw[i])];
-			screenCoord[i] = viewPortMat * projMat * worldCoord[i];
+			screenCoord[i] = Vec3f(viewPortMat * projMat * Matrix(worldCoord[i]));
 		}
 
 		triangle(screenCoord[0], screenCoord[1], screenCoord[2],
