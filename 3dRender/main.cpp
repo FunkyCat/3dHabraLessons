@@ -4,9 +4,7 @@
 #include "tgaimage.h"
 #include "ObjModel.h"
 
-const Vec2i imgSize = { 800, 800 };
-Vec3f lightDir = { 0, 0, -1 };
-Vec3f camPos = { 0, 0, 3 };
+
 
 void line(int x0, int y0, int x1, int y1, TGAImage& image, const TGAColor& color)
 {
@@ -46,7 +44,8 @@ void line(Vec2i t0, Vec2i t1, TGAImage& image, const TGAColor& color) {
 
 void triangle(Vec3i t0, Vec3i t1, Vec3i t2,
 	Vec2f uv0, Vec2f uv1, Vec2f uv2,
-	TGAImage& image, TGAImage& diffuse, TGAImage& normals, Vec3f lightDir, int* zBuffer) {
+	TGAImage& image, TGAImage& diffuse, TGAImage& normals,
+	Vec3f lightDir, int* zBuffer, Vec2i imgSize) {
 	if (t0.y > t1.y) {
 		std::swap(t0, t1);
 		std::swap(uv0, uv1);
@@ -120,8 +119,18 @@ Matrix makeViewPort(float x, float y, float w, float h, float depth) {
 }
 
 
-Vec3f matrix2vector(Matrix& m) {
-	return { m[0][0] / m[3][0], m[1][0] / m[3][0], m[2][0] / m[3][0] };
+Matrix makeLookAt(Vec3f eye, Vec3f center, Vec3f up) {
+	Vec3f z = (eye - center).normalize();
+	Vec3f x = (up ^ z).normalize();
+	Vec3f y = (z ^ x).normalize();
+	Matrix res = Matrix::identity(4);
+	for (int i = 0; i < 3; i++) {
+		res[0][i] = x[i];
+		res[1][i] = y[i];
+		res[2][i] = z[i];
+		res[i][3] = -center[i];
+	}
+	return res;
 }
 
 Matrix vector2matrix(const Vec3f v) {
@@ -132,6 +141,11 @@ Matrix vector2matrix(const Vec3f v) {
 	m[3][0] = 1.0f;
 	return m;
 }
+
+const Vec2i imgSize = { 600, 600 };
+Vec3f lightDir = Vec3f(1, -1, 1).normalize();
+Vec3f eye = { 1, 1, 3 };
+Vec3f center = { 0, 0, 0 };
 
 
 int main(int argc, char* argv[])
@@ -147,18 +161,24 @@ int main(int argc, char* argv[])
 	normalsTex.read_tga_file("obj/african_head_nm.tga");
 	normalsTex.flip_vertically();
 
+	int* zBuffer = new int[imgSize.x * imgSize.y];
+	memset(zBuffer, 0, sizeof(int) * imgSize.x * imgSize.y);
+
+	Matrix view = makeLookAt(eye, center, Vec3f(0, 1, 0));
 	Matrix projMat = Matrix::identity(4);
-	projMat[3][2] = -1.0f / camPos.z;
-	Matrix viewPortMat = makeViewPort(imgSize.x / 8.0, imgSize.y / 8.0,
-		imgSize.x / 4 * 3, imgSize.y / 4 * 3, 255);
+	projMat[3][2] = -1.0f / (eye-center).len();
+	Matrix viewPortMat = makeViewPort(imgSize.x / 8.0f, imgSize.y / 8.0f,
+		static_cast<float>(imgSize.x) / 4.0f * 3.0f, static_cast<float>(imgSize.y) / 4.0f * 3.0f, 255.0f);
 
 	const vector<Vec3f> vx = model.getVertexes();
 	const vector<Face> fx = model.getFaces();
 	const vector<Vec2f> uvx = model.getUVs();
 	const vector<Vec3f> nx = model.getNormals();
 
-	int* zBuffer = new int[imgSize.x * imgSize.y];
-	memset(zBuffer, 0, sizeof(int) * imgSize.x * imgSize.y);
+	Matrix resultMat = viewPortMat * projMat * view;
+	
+	int idx = 0;
+
 	for (const Face& face : fx) {
 		Vec3i screenCoord[3];
 		Vec2f uvCoord[3];
@@ -166,12 +186,14 @@ int main(int argc, char* argv[])
 		for (int i = 0; i < 3; i++) {
 			worldCoord[i] = vx[static_cast<size_t>(face.vertexes.raw[i])];
 			uvCoord[i] = uvx[static_cast<size_t>(face.uvs.raw[i])];
-			screenCoord[i] = matrix2vector(viewPortMat * projMat * vector2matrix(worldCoord[i]));
+			screenCoord[i] = viewPortMat * projMat * worldCoord[i];
 		}
 
 		triangle(screenCoord[0], screenCoord[1], screenCoord[2],
 			uvCoord[0], uvCoord[1], uvCoord[2],
-			image, diffuseTex, normalsTex, lightDir, zBuffer);
+			image, diffuseTex, normalsTex, lightDir, zBuffer, imgSize);
+
+		std::cerr << idx++ << " of " << fx.size() << std::endl;
 	}
 	
 
