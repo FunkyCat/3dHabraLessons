@@ -195,12 +195,12 @@ int main(int argc, char* argv[])
 		}
 
 		float viewCheck = ((screenCoord[0] - screenCoord[1]) ^ (screenCoord[0] - screenCoord[2])) * Vec3f(0, 0, 1);
-		//if (viewCheck >= 0) {
+		if (viewCheck >= 0) {
 			cnt++;
 			triangle(screenCoord[0], screenCoord[1], screenCoord[2],
 				uvCoord[0], uvCoord[1], uvCoord[2],
 				image, diffuseTex, normalsTex, lightDir, zBuffer, imgSize);
-		//}
+		}
 	}
 
 	std::cerr << "Count: " << cnt << std::endl;
