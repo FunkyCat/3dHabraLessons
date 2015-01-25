@@ -146,8 +146,8 @@ Vec3f matrix2vector(const Matrix& m) {
 	return{ m[0][0] / m[3][0], m[1][0] / m[3][0], m[2][0] / m[3][0] };
 }
 
-const Vec2i imgSize = { 600, 600 };
-Vec3f lightDir = Vec3f(1, -1, 1).normalize();
+const Vec2i imgSize = { 4000, 4000 };
+Vec3f lightDir = Vec3f(1, 1, -2).normalize();
 Vec3f eye = { 1, 1, 3 };
 Vec3f center = { 0, 0, 0 };
 
@@ -168,7 +168,7 @@ int main(int argc, char* argv[])
 	int* zBuffer = new int[imgSize.x * imgSize.y];
 	memset(zBuffer, 0, sizeof(int) * imgSize.x * imgSize.y);
 
-	Matrix view = makeLookAt(eye, center, Vec3f(0, 1, 0));
+	Matrix viewMat = makeLookAt(eye, center, Vec3f(0, 1, 0));
 	Matrix projMat = Matrix::identity(4);
 	projMat[3][2] = -1.0f / (eye-center).len();
 	Matrix viewPortMat = makeViewPort(imgSize.x / 8.0f, imgSize.y / 8.0f,
@@ -179,9 +179,10 @@ int main(int argc, char* argv[])
 	const vector<Vec2f> uvx = model.getUVs();
 	const vector<Vec3f> nx = model.getNormals();
 
-	Matrix resultMat = viewPortMat * projMat * view;
-	
+	Matrix resultMat = viewPortMat * projMat * viewMat;
 	int idx = 0;
+
+	int cnt = 0;
 
 	for (const Face& face : fx) {
 		Vec3i screenCoord[3];
@@ -193,12 +194,16 @@ int main(int argc, char* argv[])
 			screenCoord[i] = Vec3f(viewPortMat * projMat * Matrix(worldCoord[i]));
 		}
 
-		triangle(screenCoord[0], screenCoord[1], screenCoord[2],
-			uvCoord[0], uvCoord[1], uvCoord[2],
-			image, diffuseTex, normalsTex, lightDir, zBuffer, imgSize);
-
-		std::cerr << idx++ << " of " << fx.size() << std::endl;
+		float viewCheck = ((screenCoord[0] - screenCoord[1]) ^ (screenCoord[0] - screenCoord[2])) * Vec3f(0, 0, 1);
+		//if (viewCheck >= 0) {
+			cnt++;
+			triangle(screenCoord[0], screenCoord[1], screenCoord[2],
+				uvCoord[0], uvCoord[1], uvCoord[2],
+				image, diffuseTex, normalsTex, lightDir, zBuffer, imgSize);
+		//}
 	}
+
+	std::cerr << "Count: " << cnt << std::endl;
 	
 
 	image.flip_vertically();
